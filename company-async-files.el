@@ -5,7 +5,7 @@
 (require 's)
 (require 'cl-lib)
 
-(defvar company-async-files-enabled-modes '(shell-mode eshell-mode) "enabled modes.")
+;; (defvar company-async-files-enabled-modes '(shell-mode eshell-mode) "enabled modes.")
 (defvar company-async-files--cand-dir nil)
 
 (defun company-async-files--get-path ()
@@ -20,22 +20,22 @@ and prefix in `cdr'"
                         substitute-env-vars
                         (s-split (f-path-separator))
                         (-rotate 1))
+    (unless (equal it '(""))
     (-let* (((prefix . dirs) it)
             ;; when we are at the root need to
             ;; include the root
             (dir-name (if (equal '("") dirs)
                           (f-root)
                         (s-join (f-path-separator) dirs))))
-      (cons dir-name prefix))))
+        (cons dir-name prefix)))))
 
 (defun company-async-files--prefix ()
   "Get the uncompleted part of the path at point."
-  (when (-contains? company-async-files-enabled-modes major-mode)
     (-let [(dir . prefix) (company-async-files--get-path)]
-      (list dir prefix)
       (when (and dir
                  (f-directory? dir)
-                 (looking-back prefix (length prefix))
+               (looking-back (regexp-quote prefix)
+                             (- (point) (length prefix)))
                  (->> (format "find %s -maxdepth 1 -name '%s*' 2>/dev/null | wc -l" (f-full dir) prefix)
                       shell-command-to-string
                       string-to-number
@@ -45,9 +45,7 @@ and prefix in `cdr'"
                    (f-dirname dir)
                    (f-same? company-async-files--cand-dir (f-dirname dir)))
           (setq prefix (concat (f-filename dir) "/" prefix)))
-        (cons prefix (+ (length dir) (length prefix))))
-
-      )))
+      (cons prefix (+ (length dir) (length prefix))))))
 
 (defvar company-async-files-depth-search-timeout 0.5
   "amount of time in seconds to wait before cancelling the depth search")
