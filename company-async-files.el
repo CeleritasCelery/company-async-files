@@ -3,9 +3,9 @@
 (require 'company)
 (require 'dash)
 (require 's)
+(require 'f)
 (require 'cl-lib)
 
-;; (defvar company-async-files-enabled-modes '(shell-mode eshell-mode) "enabled modes.")
 (defvar company-async-files--cand-dir nil)
 
 (defun company-async-files--get-path ()
@@ -13,38 +13,40 @@
 Returns a cons cell with directory in `car'
 and prefix in `cdr'"
   (--when-let (-some->> (point)
-                        (buffer-substring-no-properties (line-beginning-position))
-                        (s-match (rx (+ (any alnum "~/${}._-")) eos))
-                        car
+                        (buffer-substring (line-beginning-position))
+                        (s-match (rx (+ (any alnum "~/${}._-" "'\"")) eos))
+                        (car)
                         (s-replace "~" "$HOME")
                         substitute-env-vars
+                        (replace-regexp-in-string (rx (any "'\"")) "")
                         (s-split (f-path-separator))
                         (-rotate 1))
     (unless (equal it '(""))
-    (-let* (((prefix . dirs) it)
-            ;; when we are at the root need to
-            ;; include the root
-            (dir-name (if (equal '("") dirs)
-                          (f-root)
-                        (s-join (f-path-separator) dirs))))
+      (-let* (((prefix . dirs) it)
+              ;; when we are at the root need to
+              ;; include the root
+              (dir-name (if (equal '("") dirs)
+                            (f-root)
+                          (s-join (f-path-separator) dirs))))
         (cons dir-name prefix)))))
 
 (defun company-async-files--prefix ()
   "Get the uncompleted part of the path at point."
-    (-let [(dir . prefix) (company-async-files--get-path)]
-      (when (and dir
-                 (f-directory? dir)
+  (-let [(dir . prefix) (company-async-files--get-path)]
+    (when (and dir
+               (f-directory? dir)
+               (looking-back (rx symbol-end) (1- (point)))
                (looking-back (regexp-quote prefix)
                              (- (point) (length prefix)))
-                 (->> (format "find %s -maxdepth 1 -name '%s*' 2>/dev/null | wc -l" (f-full dir) prefix)
-                      shell-command-to-string
-                      string-to-number
-                      zerop
-                      not))
-        (when (and company-async-files--cand-dir
-                   (f-dirname dir)
-                   (f-same? company-async-files--cand-dir (f-dirname dir)))
-          (setq prefix (concat (f-filename dir) "/" prefix)))
+               (->> (format "find %s -maxdepth 1 -name '%s*' 2>/dev/null | wc -l" (f-full dir) prefix)
+                    shell-command-to-string
+                    string-to-number
+                    zerop
+                    not))
+      (when (and company-async-files--cand-dir
+                 (f-dirname dir)
+                 (f-same? company-async-files--cand-dir (f-dirname dir)))
+        (setq prefix (concat (f-filename dir) (f-path-separator) prefix)))
       (cons prefix (+ (length dir) (length prefix))))))
 
 (defvar company-async-files-depth-search-timeout 0.5
@@ -72,7 +74,7 @@ current directory."
                            buffer-1
                            (s-lex-format "cd ${dir} && find -L ${prefix}* -maxdepth 0 -printf '%p\t%y\n' 2>/dev/null" ))
                           (lambda (_ event)
-                            (when (s-equals? event "finished\n")
+                            (when (string-equal event "finished\n")
                               (if timeout?
                                   (funcall respond buffer-1)
                                 (setq timeout? t)))))
@@ -81,14 +83,13 @@ current directory."
                            buffer-2
                            (s-lex-format "cd ${dir} && find -L ${prefix}* -maxdepth 1 -printf '%p\t%y\n' 2>/dev/null" ))
                           (lambda (_ event)
-                            (when (s-equals? event "finished\n")
+                            (when (string-equal event "finished\n")
                               (funcall respond buffer-2))))
     (run-at-time company-async-files-depth-search-timeout nil
                  (lambda ()
                    (if timeout?
                        (funcall respond buffer-1)
-                     (setq timeout? t))))
-    ))
+                     (setq timeout? t))))))
 
 (defun company-async-files--parse (buffer)
   "read the result of GNU find.
@@ -96,7 +97,7 @@ The results are of the form
 candiate type"
   (prog1
       (--map (-let [(file type) (s-split "\t" it)]
-               (if (s-equals? type "d")
+               (if (string-equal type "d")
                    (concat file (f-path-separator))
                  file))
              (s-lines
