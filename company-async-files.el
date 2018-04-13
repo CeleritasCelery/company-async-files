@@ -111,6 +111,18 @@ candiate type"
     (delete-char -1))
   (setq company-async-files--cand-dir nil))
 
+(defun company-async-files--meta (cand)
+  "Show the system info for candiate"
+  (->> (expand-file-name cand company-async-files--cand-dir)
+       (format "ls --directory --human-readable -l %s")
+       (shell-command-to-string)
+       (replace-regexp-in-string (rx (group-n 1
+                                              (repeat 8
+                                                      (and (1+ (not space))
+                                                           (1+ space))))
+                                     (1+ (not space)))
+                                 "\\1")))
+
 ;;;###autoload
 (defun company-async-files (command &optional arg &rest ignored)
   "Complete shell commands and options using Fish shell. See `company's COMMAND ARG and IGNORED for details."
@@ -118,9 +130,8 @@ candiate type"
   (cl-case command
     (interactive (company-begin-backend 'company-async-files))
     (prefix (company-async-files--prefix))
-    (candidates
-     (cons :async (lambda (callback) (company-async-files--candidates callback)))
-     )
+    (candidates (cons :async (lambda (callback) (company-async-files--candidates callback))))
+    (meta (company-async-files--meta arg))
     (post-completion (company-async-files--post arg))))
 
 (defun company-async-files--clear-dir (_)
