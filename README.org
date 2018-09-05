@@ -1,0 +1,38 @@
+* Company Async Files
+
+[[http://company-mode.github.io/][company-mode]] has a builtin =company-files= backend that allows for
+file autocompletion. However this backend is synchronous, and
+therefore can block the UI and leads to freezes. In my case working
+with large slow file systems this made =company-files= completley
+unusable, Especially with =M-x shell= which relies heavily on file
+path completion.
+
+=company-async-files= provides the same completion as =company-files=,
+but asynchronously uses find in the background to get the candidates.
+This ensures that your user thread is never blocked by your completion
+backend, which is the way it should be. As an added bonus, this
+backend will display information about the current candidate in the
+minbuffer echo area.
+
+** compatibility
+
+Since this backend relies on GNU =find=, it is not compatible with
+Windows and does not yet support TRAMP.
+
+** usage
+
+Add =company-async-files= to =company-backends= afte installing this
+package. =company-async-files= is smart enough to know when the symbol
+at point is a valid filename. Therefore it is safe to use at the
+begining of =company-backends= as the first backend for completion.
+
+** customization
+
+By default, =company-async-files= tries to provide two levels deep for
+completion candidates. However this depth search can take too long to
+be usefull when working on large filesystems. Therefore the depth
+search will be cancelled after
+=company-async-files-depth-search-timeout= (which defaults to 500 ms).
+If timeout occurs, =company-async-files= will only provide candiates
+in the immediate directory. This timeout value can be customized to
+suite your preference.

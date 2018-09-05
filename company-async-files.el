@@ -1,10 +1,52 @@
 ;;; company-async-files.el --- company backend for files  -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2017 by Troy Hinckley
+
+;; Author: Troy Hinckley <troy.hinckley@gmail.com>
+;; URL: https://github.com/CeleritasCelery/company-async-files
+;; Version: 0.1.0
+;; Package-Requires: ((company "0.9.3") (cl-lib "0.5.0") (f "0.18.2") (dash "2.12.0") (s "1.12") (emacs "25"))
+
+;; This file is not part of GNU Emacs.
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; async Company backend for files.
+;; =company-async-files= provides the same completion as =company-files=,
+;; but asynchronously uses find in the background to get the candidates.
+;; This ensures that your user thread is never blocked by your completion
+;; backend, which is the way it should be.
+
+;;; Code:
+
 (require 'company)
 (require 'dash)
 (require 's)
 (require 'f)
 (require 'cl-lib)
+
+;;; Customizable variables
+(defgroup company-plsense nil
+  "company back-end for perl5"
+  :prefix "company-async-files-"
+  :group 'programming
+  :link '(url-link :tag "Github" "https://github.com/CeleritasCelery/company-async-files"))
+
+(defcustom company-async-files-depth-search-timeout 0.5
+  "amount of time in seconds to wait before cancelling the depth search")
 
 (defvar company-async-files--cand-dir nil)
 
@@ -50,9 +92,6 @@ and prefix in `cdr'"
         (setq prefix (concat (f-filename dir) (f-path-separator) prefix)))
       (cons prefix (+ (length dir) (length prefix))))))
 
-(defvar company-async-files-depth-search-timeout 0.5
-  "amount of time in seconds to wait before cancelling the depth search")
-
 (defun company-async-files--candidates (callback)
   "Get all files and directories at point.
 By deafult `company-async-files--candidates' get all candidates in the current
@@ -62,7 +101,7 @@ current directory."
   (-let (((dir . prefix) (company-async-files--get-path))
          (buffer-1 (generate-new-buffer "file-candiates-1"))
          (buffer-2 (generate-new-buffer "file-candiates-2"))
-         ((finished? timeout? respond) (-repeat 3 nil)))
+         ((finished? timeout? respond)))
     (setq company-async-files--cand-dir dir)
     (setq dir (f-full dir))
     (setq respond (lambda (buf)
@@ -126,7 +165,7 @@ candiate type"
 
 ;;;###autoload
 (defun company-async-files (command &optional arg &rest ignored)
-  "Complete shell commands and options using Fish shell. See `company's COMMAND ARG and IGNORED for details."
+  "Complete file paths using find. See `company's COMMAND ARG and IGNORED for details."
   (interactive (list 'interactive))
   (cl-case command
     (interactive (company-begin-backend 'company-async-files))
