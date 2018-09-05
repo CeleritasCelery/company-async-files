@@ -13,10 +13,11 @@
 Returns a cons cell with directory in `car'
 and prefix in `cdr'"
   (--when-let (-some->> (point)
-                        (buffer-substring (line-beginning-position))
+                        (buffer-substring-no-properties (line-beginning-position))
                         (s-match (rx (+ (any alnum "~/${}._-" "'\"")) eos))
                         (car)
                         (s-replace "~" "$HOME")
+                        (s-replace "$ENV" "$") ;; perl form
                         substitute-env-vars
                         (replace-regexp-in-string (rx (any "'\"")) "")
                         (s-split (f-path-separator))
