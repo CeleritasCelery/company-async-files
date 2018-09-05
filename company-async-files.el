@@ -36,7 +36,7 @@ and prefix in `cdr'"
   (-let [(dir . prefix) (company-async-files--get-path)]
     (when (and dir
                (f-directory? dir)
-               (looking-back (rx symbol-end) (1- (point)))
+               (looking-back (rx (or symbol-end punctuation)) (1- (point)))
                (looking-back (regexp-quote prefix)
                              (- (point) (length prefix)))
                (->> (format "find %s -maxdepth 1 -name '%s*' 2>/dev/null | wc -l" (f-full dir) prefix)
