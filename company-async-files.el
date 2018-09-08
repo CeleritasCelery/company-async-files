@@ -46,7 +46,8 @@
   :link '(url-link :tag "Github" "https://github.com/CeleritasCelery/company-async-files"))
 
 (defcustom company-async-files-depth-search-timeout 0.5
-  "amount of time in seconds to wait before cancelling the depth search")
+  "Amount of time in seconds to wait before cancelling the depth search."
+  :type 'number)
 
 (defvar company-async-files--cand-dir nil)
 
@@ -93,7 +94,7 @@ and prefix in `cdr'"
       (cons prefix (+ (length dir) (length prefix))))))
 
 (defun company-async-files--candidates (callback)
-  "Get all files and directories at point.
+  "Get all files and directories at point and invoke CALLBACK.
 By deafult `company-async-files--candidates' get all candidates in the current
 directory and all subdirectories. If this takes longer then
 `company-async-files-depth-search-timeout' it will only supply candiates in the
@@ -132,9 +133,9 @@ current directory."
                      (setq timeout? t))))))
 
 (defun company-async-files--parse (buffer)
-  "read the result of GNU find.
+  "Read the result of GNU find from BUFFER.
 The results are of the form
-candiate type"
+candidate type"
   (prog1
       (--map (-let [(file type) (s-split "\t" it)]
                (if (string-equal type "d")
@@ -146,13 +147,13 @@ candiate type"
     (kill-buffer buffer)))
 
 (defun company-async-files--post (cand)
-  "remove the trailing `f-path-separator'"
+  "Remove the trailing `f-path-separator' from CAND."
   (when (s-suffix? (f-path-separator) cand)
     (delete-char -1))
   (setq company-async-files--cand-dir nil))
 
 (defun company-async-files--meta (cand)
-  "Show the system info for candiate"
+  "Show the system info for CAND."
   (->> (expand-file-name cand company-async-files--cand-dir)
        (format "ls --directory --human-readable -l %s")
        (shell-command-to-string)
@@ -175,8 +176,10 @@ candiate type"
     (post-completion (company-async-files--post arg))))
 
 (defun company-async-files--clear-dir (_)
+  "Clear async files directory."
   (setq company-async-files--cand-dir nil))
 
 (add-hook 'company-completion-cancelled-hook 'company-async-files--clear-dir)
 
 (provide 'company-async-files)
+;;; company-async-files.el ends here
