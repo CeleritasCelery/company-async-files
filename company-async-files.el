@@ -39,8 +39,8 @@
 (require 'cl-lib)
 
 ;;; Customizable variables
-(defgroup company-plsense nil
-  "company back-end for perl5"
+(defgroup company-async-files nil
+  "company back-end for async file completion"
   :prefix "company-async-files-"
   :group 'programming
   :link '(url-link :tag "Github" "https://github.com/CeleritasCelery/company-async-files"))
