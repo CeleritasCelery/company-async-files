@@ -102,6 +102,8 @@ current directory."
   (-let (((dir . prefix) (company-async-files--get-path))
          (buffer-1 (get-buffer-create "file-candiates-1"))
          (buffer-2 (get-buffer-create "file-candiates-2"))
+         (default-directory (if (file-exists-p default-directory)
+                                default-directory user-emacs-directory))
          ((timeout? respond)))
     (cl-loop for buffer in (list buffer-1 buffer-2)
              do (when-let ((proc (process-live-p (get-buffer-process buffer))))
@@ -168,12 +170,14 @@ candidate type"
 (defun company-async-files (command &optional arg &rest ignored)
   "Complete file paths using find. See `company's COMMAND ARG and IGNORED for details."
   (interactive (list 'interactive))
-  (cl-case command
-    (interactive (company-begin-backend 'company-async-files))
-    (prefix (company-async-files--prefix))
-    (candidates (cons :async (lambda (callback) (company-async-files--candidates callback))))
-    (meta (company-async-files--meta arg))
-    (post-completion (company-async-files--post arg))))
+  (let ((default-directory (if (file-exists-p default-directory)
+                               default-directory user-emacs-directory)))
+    (cl-case command
+      (interactive (company-begin-backend 'company-async-files))
+      (prefix (company-async-files--prefix))
+      (candidates (cons :async (lambda (callback) (company-async-files--candidates callback))))
+      (meta (company-async-files--meta arg))
+      (post-completion (company-async-files--post arg)))))
 
 (defun company-async-files--clear-dir (_)
   "Clear async files directory."
