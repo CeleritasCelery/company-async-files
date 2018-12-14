@@ -100,16 +100,18 @@ directory and all subdirectories. If this takes longer then
 `company-async-files-depth-search-timeout' it will only supply candiates in the
 current directory."
   (-let (((dir . prefix) (company-async-files--get-path))
-         (buffer-1 (generate-new-buffer "file-candiates-1"))
-         (buffer-2 (generate-new-buffer "file-candiates-2"))
-         ((finished? timeout? respond)))
+         (buffer-1 (get-buffer-create "file-candiates-1"))
+         (buffer-2 (get-buffer-create "file-candiates-2"))
+         ((timeout? respond)))
+    (cl-loop for buffer in (list buffer-1 buffer-2)
+             do (when-let ((proc (process-live-p (get-buffer-process buffer))))
+                  (kill-process proc))
+             (with-current-buffer buffer
+               (erase-buffer)))
     (setq company-async-files--cand-dir dir)
     (setq dir (f-full dir))
     (setq respond (lambda (buf)
-                    (if finished?
-                        (kill-buffer buf)
-                      (funcall callback (company-async-files--parse buf))
-                      (setq finished? t))))
+                    (funcall callback (company-async-files--parse buf))))
     (set-process-sentinel (start-process-shell-command
                            "file-candiates-1"
                            buffer-1
@@ -136,15 +138,13 @@ current directory."
   "Read the result of GNU find from BUFFER.
 The results are of the form
 candidate type"
-  (prog1
-      (--map (-let [(file type) (s-split "\t" it)]
-               (if (string-equal type "d")
-                   (concat file (f-path-separator))
-                 file))
-             (s-lines
-              (s-trim (with-current-buffer buffer
-                        (buffer-string)))))
-    (kill-buffer buffer)))
+  (--map (-let [(file type) (s-split "\t" it)]
+           (if (string-equal type "d")
+               (concat file (f-path-separator))
+             file))
+         (s-lines
+          (s-trim (with-current-buffer buffer
+                    (buffer-string))))))
 
 (defun company-async-files--post (cand)
   "Remove the trailing `f-path-separator' from CAND."
