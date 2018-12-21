@@ -106,8 +106,9 @@ current directory."
                                 default-directory user-emacs-directory))
          ((timeout? respond)))
     (cl-loop for buffer in (list buffer-1 buffer-2)
-             do (when-let ((proc (process-live-p (get-buffer-process buffer))))
-                  (kill-process proc))
+             do (let ((proc (get-buffer-process buffer)))
+                  (when (process-live-p proc)
+                    (kill-process proc)))
              (with-current-buffer buffer
                (erase-buffer)))
     (setq company-async-files--cand-dir dir)
