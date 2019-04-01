@@ -100,8 +100,8 @@ directory and all subdirectories. If this takes longer then
 `company-async-files-depth-search-timeout' it will only supply candiates in the
 current directory."
   (-let (((dir . prefix) (company-async-files--get-path))
-         (buffer-1 (get-buffer-create "file-candiates-1"))
-         (buffer-2 (get-buffer-create "file-candiates-2"))
+         (buffer-1 (get-buffer-create "*file-candiates-1*"))
+         (buffer-2 (get-buffer-create "*file-candiates-2*"))
          (default-directory (if (file-exists-p default-directory)
                                 default-directory user-emacs-directory))
          ((timeout? respond)))
